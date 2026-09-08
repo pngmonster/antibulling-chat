@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Анонимный диалог. Персональных данных не храним:
+/// связь с ребёнком — только через случайный sessionToken в его браузере.
+model Conversation {
+  id            String             @id @default(uuid())
+  sessionHash   String             @unique // sha256(sessionToken), сам токен на сервере не хранится
+  status        ConversationStatus @default(WAITING)
+  risk          RiskLevel          @default(NONE)
+  alias         String // «Гость-4821» — то, что видит психолог
+  operatorId    String?
+  operator      Operator?          @relation(fields: [operatorId], references: [id])
+  messages      Message[]
+  createdAt     DateTime           @default(now())
+  lastMessageAt DateTime           @default(now())
+  closedAt      DateTime?
+
+  @@index([status, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author         Author
+  body           String       @db.Text
+  flagged        Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Operator {
+  id            String         @id @default(uuid())
+  login         String         @unique
+  passwordHash  String
+  displayName   String
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+}
+
+enum ConversationStatus {
+  WAITING
+  ACTIVE
+  CLOSED
+}
+
+enum Author {
+  CHILD
+  PSYCHOLOGIST
+  SYSTEM
+}
+
+enum RiskLevel {
+  NONE
+  ELEVATED
+  CRITICAL
+}

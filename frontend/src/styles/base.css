@@ -1,0 +1,89 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--mist);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+textarea,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--moss-wash);
+}
+
+/* Скрыто визуально, но доступно скринридеру */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Тонкая полоса прокрутки, чтобы не рвать спокойный фон */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mist-deep) transparent;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background: var(--mist-deep);
+  border-radius: var(--radius-pill);
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

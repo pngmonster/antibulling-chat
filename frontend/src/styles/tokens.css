@@ -1,0 +1,58 @@
+/*
+  Дизайн-система «Рядом».
+  Метафора: тихая комната у окна в пасмурный день. Холодный рассеянный свет,
+  мягкие формы, ни одного резкого сигнала. Красный не используется нигде —
+  тревожную информацию несёт тёплый песочный, а не аварийный цвет.
+*/
+
+:root {
+  /* Палитра */
+  --ink: #22303a; /* основной текст, глубокий сине-графитовый */
+  --ink-soft: #5d7280; /* подписи, метаданные */
+  --ink-faint: #93a4ad; /* подсказки, плейсхолдеры */
+
+  --mist: #edf1f2; /* фон страницы */
+  --mist-deep: #dfe7e8; /* границы, разделители */
+  --paper: #ffffff; /* поверхности */
+
+  --moss: #4f7d6e; /* действия ребёнка, кнопка отправки */
+  --moss-deep: #3f665a;
+  --moss-wash: #e4eeea;
+
+  --sand: #f6ede3; /* блок экстренной помощи */
+  --sand-line: #e6d5c2;
+  --clay: #8a6a4f; /* текст на песочном */
+
+  --lilac: #efeaf4; /* фон сообщений психолога на тёмном экране */
+
+  /* Типографика */
+  --font-ui: 'Golos Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Onest', 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+
+  --text-xs: 0.8125rem; /* 13px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-md: 1.0625rem; /* 17px */
+  --text-lg: 1.1875rem; /* 19px */
+  --text-xl: 1.5rem; /* 24px */
+
+  /* Ритм и форма */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-bubble: 22px;
+  --radius-tail: 7px;
+  --radius-panel: 26px;
+  --radius-pill: 999px;
+
+  --shadow-rest: 0 1px 2px rgba(34, 48, 58, 0.04), 0 8px 24px rgba(34, 48, 58, 0.05);
+  --shadow-lift: 0 2px 6px rgba(34, 48, 58, 0.06), 0 18px 40px rgba(34, 48, 58, 0.09);
+
+  --thread-width: 41rem; /* ~64 знака в строке */
+  --ease-calm: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
