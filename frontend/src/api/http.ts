@@ -1,13 +1,30 @@
 const BASE = import.meta.env.VITE_API_URL ?? '/api';
 
+/** Ошибка запроса с кодом ответа — интерфейсу нужно различать 400, 401 и обрыв связи. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...init,
+    });
+  } catch {
+    throw new ApiError('Сервер не отвечает', 0);
+  }
 
   if (!response.ok) {
-    throw new Error(`Запрос ${path} завершился с кодом ${response.status}`);
+    throw new ApiError(`Запрос ${path} завершился с кодом ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;

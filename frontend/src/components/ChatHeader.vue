@@ -8,7 +8,7 @@ const labels: Record<Connection, string> = {
   idle: 'Подключаюсь',
   connecting: 'Подключаюсь',
   online: 'Психолог на связи',
-  offline: 'Связь пропала, восстанавливаю',
+  offline: 'Восстанавливаю связь',
 };
 </script>
 
@@ -17,8 +17,8 @@ const labels: Record<Connection, string> = {
     <div class="identity">
       <span class="mark">Рядом</span>
       <span class="status" :data-state="connection">
-        <span class="pulse"></span>
-        {{ labels[connection] }}
+        <span class="pulse" aria-hidden="true"></span>
+        <span class="status__label">{{ labels[connection] }}</span>
       </span>
     </div>
 
@@ -31,7 +31,7 @@ const labels: Record<Connection, string> = {
           stroke-linecap="round"
         />
       </svg>
-      Быстро закрыть
+      <span class="exit__label">Быстро закрыть</span>
     </button>
   </header>
 </template>
@@ -41,20 +41,24 @@ const labels: Record<Connection, string> = {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3);
   width: min(100%, var(--thread-width));
   margin: 0 auto;
   padding: var(--space-4) var(--space-5) var(--space-3);
 }
 
+/* min-width: 0 на всей цепочке флекс-контейнеров. Без него длинная подпись
+   статуса распирает шапку и выталкивает точку-индикатор за край экрана. */
 .identity {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .mark {
+  flex: none;
   font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: 600;
@@ -66,11 +70,16 @@ const labels: Record<Connection, string> = {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
   font-size: var(--text-sm);
   color: var(--ink-soft);
-  white-space: nowrap;
+}
+
+.status__label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulse {
@@ -101,6 +110,7 @@ const labels: Record<Connection, string> = {
   background: var(--paper);
   color: var(--ink-soft);
   font-size: var(--text-sm);
+  white-space: nowrap;
   box-shadow: var(--shadow-rest);
   transition:
     color 200ms var(--ease-calm),
@@ -112,20 +122,37 @@ const labels: Record<Connection, string> = {
   box-shadow: var(--shadow-lift);
 }
 
-@media (max-width: 30rem) {
+@media (max-width: 34rem) {
   .header {
     padding: var(--space-3) var(--space-4);
+    gap: var(--space-2);
   }
 
   .identity {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0;
+    gap: 1px;
   }
 
-  .exit span,
-  .exit {
+  .status {
     font-size: var(--text-xs);
+  }
+}
+
+/* На совсем узких экранах кнопка сжимается до иконки, чтобы подпись статуса
+   не воевала за место с кнопкой выхода. */
+@media (max-width: 22rem) {
+  .exit {
+    padding: 8px;
+  }
+
+  .exit__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
 </style>

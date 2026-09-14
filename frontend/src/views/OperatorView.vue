@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onBeforeUnmount } from 'vue';
 import type { Socket } from 'socket.io-client';
-import { api } from '../api/http';
+import { api, ApiError } from '../api/http';
 import { connectAsOperator } from '../api/socket';
 import type { ChatMessage } from '../stores/chat';
 
@@ -43,8 +43,12 @@ async function signIn() {
     authorized.value = true;
     password.value = '';
     connect(result.token);
-  } catch {
-    authError.value = 'Логин или пароль не подошли. Проверь раскладку и попробуй ещё раз.';
+  } catch (error) {
+    const status = error instanceof ApiError ? error.status : -1;
+    if (status === 0) authError.value = 'Сервер не отвечает. Проверь, что бэкенд запущен.';
+    else if (status === 401) authError.value = 'Логин или пароль не подошли.';
+    else if (status === 429) authError.value = 'Слишком много попыток. Подожди минуту.';
+    else authError.value = `Вход не прошёл, код ответа ${status}. Смотри логи бэкенда.`;
   }
 }
 
@@ -57,6 +61,8 @@ function connect(jwt: string) {
   });
   socket.on('message:new', (message: ChatMessage) => {
     if (!activeId.value) return;
+    // Страховка от повторной доставки: одно сообщение — одна запись в ленте.
+    if (messages.value.some((m) => m.id === message.id)) return;
     messages.value = messages.value.concat(message);
     scrollToEnd();
   });

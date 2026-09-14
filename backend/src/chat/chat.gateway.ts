@@ -20,10 +20,17 @@ interface SocketState {
   role: Role;
   conversationId?: string;
   operatorId?: string;
+  tokens: number;
+  refilledAt: number;
 }
 
 const OPERATORS_ROOM = 'operators';
 const room = (conversationId: string) => `conv:${conversationId}`;
+
+// Ведро на 8 сообщений, пополняется одним сообщением в секунду.
+// Обычному человеку этого хватает с запасом, скрипту — нет.
+const BUCKET_SIZE = 8;
+const REFILL_MS = 1000;
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -37,7 +44,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(ChatGateway.name);
   private readonly state = new Map<string, SocketState>();
-  private readonly lastMessageAt = new Map<string, number>();
 
   constructor(
     private readonly chat: ChatService,
@@ -48,10 +54,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: Socket) {
     try {
       const auth = client.handshake.auth ?? {};
+      const base = { tokens: BUCKET_SIZE, refilledAt: Date.now() };
 
       if (auth.role === 'operator') {
         const payload = await this.jwt.verifyAsync(String(auth.jwt ?? ''));
-        this.state.set(client.id, { role: 'operator', operatorId: payload.sub });
+        this.state.set(client.id, { role: 'operator', operatorId: payload.sub, ...base });
         client.join(OPERATORS_ROOM);
         client.emit('operator:queue', await this.chat.queue());
         return;
@@ -64,7 +71,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      this.state.set(client.id, { role: 'child', conversationId: conversation.id });
+      this.state.set(client.id, { role: 'child', conversationId: conversation.id, ...base });
       client.join(room(conversation.id));
       client.emit('history', await this.chat.history(conversation.id));
       client.emit('conversation:state', { status: conversation.status, alias: conversation.alias });
@@ -77,7 +84,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     this.state.delete(client.id);
-    this.lastMessageAt.delete(client.id);
   }
 
   @SubscribeMessage('message:send')
@@ -88,15 +94,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const state = this.state.get(client.id);
     const text = String(data?.text ?? '').trim();
     if (!state || !text) return;
+
     if (text.length > MAX_MESSAGE_LENGTH) {
       client.emit('error:message', { reason: 'too_long', limit: MAX_MESSAGE_LENGTH });
       return;
     }
 
-    // Простая защита от флуда: не чаще одного сообщения в 400 мс.
-    const now = Date.now();
-    if (now - (this.lastMessageAt.get(client.id) ?? 0) < 400) return;
-    this.lastMessageAt.set(client.id, now);
+    if (!this.allow(state)) {
+      client.emit('error:message', { reason: 'too_fast' });
+      return;
+    }
 
     if (state.role === 'child' && state.conversationId) {
       const { message, systemMessage, risk } = await this.chat.addChildMessage(
@@ -119,13 +126,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (state.role === 'operator') {
       const conversationId = String(data?.conversationId ?? '');
       if (!conversationId) return;
-      const message = await this.chat.addOperatorMessage(
-        conversationId,
-        state.operatorId!,
-        text,
-      );
+
+      const message = await this.chat.addOperatorMessage(conversationId, state.operatorId!, text);
+
+      // Психолог уже состоит в комнате диалога после operator:open,
+      // поэтому широковещательной отправки достаточно. Отдельный client.emit
+      // здесь давал ту самую вторую копию сообщения на его экране.
       this.server.to(room(conversationId)).emit('message:new', message);
-      client.emit('message:new', message);
       this.server.to(OPERATORS_ROOM).emit('operator:queue', await this.chat.queue());
     }
   }
@@ -144,7 +151,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string },
   ) {
     const state = this.state.get(client.id);
-    if (state?.role !== 'operator') return;
+    if (state?.role !== 'operator' || !data?.conversationId) return;
 
     if (state.conversationId) client.leave(room(state.conversationId));
     state.conversationId = data.conversationId;
@@ -160,5 +167,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const state = this.state.get(client.id);
     if (state?.role !== 'operator' || !data?.conversationId) return;
     client.to(room(data.conversationId)).emit('typing', { isTyping: !!data.isTyping });
+  }
+
+  /** Token bucket: сглаживает всплески, но не мешает быстро печатающему человеку. */
+  private allow(state: SocketState): boolean {
+    const now = Date.now();
+    const refill = Math.floor((now - state.refilledAt) / REFILL_MS);
+
+    if (refill > 0) {
+      state.tokens = Math.min(BUCKET_SIZE, state.tokens + refill);
+      state.refilledAt = now;
+    }
+
+    if (state.tokens <= 0) return false;
+    state.tokens -= 1;
+    return true;
   }
 }

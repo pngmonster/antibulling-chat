@@ -92,9 +92,11 @@ export const useChatStore = defineStore('chat', () => {
     });
 
     socket.on('message:new', (message: ChatMessage) => {
-      messages.value = messages.value
-        .filter((m) => !(m.pending && m.body === message.body && m.author === message.author))
-        .concat(message);
+      const withoutPending = messages.value.filter(
+        (m) => !(m.pending && m.body === message.body && m.author === message.author),
+      );
+      if (withoutPending.some((m) => m.id === message.id)) return;
+      messages.value = withoutPending.concat(message);
       if (message.author !== 'CHILD') psychologistTyping.value = false;
     });
 
@@ -102,8 +104,11 @@ export const useChatStore = defineStore('chat', () => {
       psychologistTyping.value = isTyping;
     });
 
-    socket.on('error:message', () => {
-      errorText.value = 'Сообщение слишком длинное. Раздели его на части — так даже проще читать.';
+    socket.on('error:message', ({ reason }: { reason: string }) => {
+      errorText.value =
+        reason === 'too_fast'
+          ? 'Слишком много сообщений подряд. Подожди пару секунд, я никуда не денусь.'
+          : 'Сообщение слишком длинное. Раздели его на части — так даже проще читать.';
     });
   }
 

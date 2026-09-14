@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { IsString, Length } from 'class-validator';
 import { SessionService } from './session.service';
 
@@ -13,6 +14,8 @@ export class SessionController {
   constructor(private readonly session: SessionService) {}
 
   /** Вызывается один раз при первом заходе ребёнка. Никаких персональных данных. */
+  // Запас на школьный NAT: за одним внешним адресом могут сидеть десятки детей.
+  @Throttle({ default: { limit: 30, ttl: 600_000 } })
   @Post()
   async create() {
     const { token, conversation } = await this.session.create();
