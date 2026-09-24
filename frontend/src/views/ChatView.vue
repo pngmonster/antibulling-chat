@@ -5,13 +5,14 @@ import { useQuickExit } from '../composables/useQuickExit';
 import AmbientLight from '../components/AmbientLight.vue';
 import ChatHeader from '../components/ChatHeader.vue';
 import MessageBubble from '../components/MessageBubble.vue';
+import ThreadDivider from '../components/ThreadDivider.vue';
 import MessageComposer from '../components/MessageComposer.vue';
 import TypingDots from '../components/TypingDots.vue';
 import StarterChips from '../components/StarterChips.vue';
 import SafetyStrip from '../components/SafetyStrip.vue';
 
 const chat = useChatStore();
-const { leave } = useQuickExit();
+const { leave, wipeAndLeave } = useQuickExit();
 
 const thread = ref<HTMLElement | null>(null);
 const composer = ref<InstanceType<typeof MessageComposer> | null>(null);
@@ -36,6 +37,12 @@ async function purge() {
   await chat.purge();
   await chat.start();
 }
+
+/** Стереть разговор и сразу уйти со страницы — одним действием. */
+async function purgeAndLeave() {
+  await chat.purge();
+  wipeAndLeave();
+}
 </script>
 
 <template>
@@ -48,7 +55,10 @@ async function purge() {
       <div class="thread__inner">
         <TypingDots v-if="chat.revealing" />
 
-        <MessageBubble v-for="message in chat.messages" :key="message.id" :message="message" />
+        <template v-for="message in chat.messages" :key="message.id">
+          <ThreadDivider v-if="message.author === 'DIVIDER'" :label="message.body" />
+          <MessageBubble v-else :message="message" />
+        </template>
 
         <TypingDots v-if="chat.psychologistTyping && !chat.revealing" />
 
@@ -70,7 +80,7 @@ async function purge() {
           @typing="chat.notifyTyping"
         />
 
-        <SafetyStrip @purge="purge" />
+        <SafetyStrip @purge="purge" @purge-and-leave="purgeAndLeave" />
       </div>
     </footer>
   </div>

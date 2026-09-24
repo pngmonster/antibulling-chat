@@ -8,6 +8,7 @@ import { ChatModule } from './chat/chat.module';
 import { OperatorModule } from './operator/operator.module';
 import { SafetyModule } from './safety/safety.module';
 import { HealthController } from './common/health.controller';
+import { RetentionService } from './common/retention.service';
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { HealthController } from './common/health.controller';
     OperatorModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [RetentionService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

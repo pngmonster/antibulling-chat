@@ -5,7 +5,7 @@ import { api } from '../api/http';
 import { connectAsChild } from '../api/socket';
 import { readToken, writeToken, clearAll } from '../api/storage';
 
-export type Author = 'CHILD' | 'PSYCHOLOGIST' | 'SYSTEM';
+export type Author = 'CHILD' | 'PSYCHOLOGIST' | 'SYSTEM' | 'DIVIDER';
 
 export interface ChatMessage {
   id: string;
@@ -16,6 +16,9 @@ export interface ChatMessage {
 }
 
 export type Connection = 'idle' | 'connecting' | 'online' | 'offline';
+
+/** Пауза, после которой в ленте появляется отметка о возвращении. */
+const RETURN_GAP_MS = 30 * 60 * 1000;
 
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<ChatMessage[]>([]);
@@ -79,7 +82,7 @@ export const useChatStore = defineStore('chat', () => {
 
     socket.on('history', (history: ChatMessage[]) => {
       const apply = () => {
-        messages.value = history;
+        messages.value = withReturnMark(history);
         revealing.value = false;
       };
       // Единственная неинтерактивная анимация во всём интерфейсе:
@@ -152,6 +155,31 @@ export const useChatStore = defineStore('chat', () => {
     clearAll();
     messages.value = [];
     connection.value = 'idle';
+  }
+
+  /**
+   * Ребёнок вернулся после перерыва — показываем тихую отметку,
+   * чтобы старая переписка не выглядела как то, что происходит прямо сейчас.
+   */
+  function withReturnMark(history: ChatMessage[]): ChatMessage[] {
+    const last = history[history.length - 1];
+    if (!last) return history;
+
+    const pause = Date.now() - new Date(last.createdAt).getTime();
+    if (pause < RETURN_GAP_MS) return history;
+
+    return history.concat({
+      id: `divider-${last.id}`,
+      author: 'DIVIDER',
+      body: formatGap(pause),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  function formatGap(pause: number): string {
+    const days = Math.floor(pause / 86_400_000);
+    if (days >= 1) return days === 1 ? 'Вчера и раньше' : `${days} дня назад и раньше`;
+    return 'Ранее сегодня';
   }
 
   function prefersMotion() {

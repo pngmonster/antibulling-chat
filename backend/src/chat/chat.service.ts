@@ -48,7 +48,15 @@ export class ChatService {
 
     await this.prisma.conversation.update({
       where: { id: conversationId },
-      data: { lastMessageAt: new Date(), risk: nextRisk },
+      data: {
+        lastMessageAt: new Date(),
+        risk: nextRisk,
+        // Ребёнок вернулся в закрытый диалог — возвращаем его в очередь,
+        // иначе сообщение уйдёт в пустоту: закрытые диалоги психолог не видит.
+        ...(conversation.status === ConversationStatus.CLOSED
+          ? { status: ConversationStatus.WAITING, closedAt: null }
+          : {}),
+      },
     });
 
     // Кризисная подсказка показывается один раз за диалог.

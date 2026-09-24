@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { getMode, setMode, type StorageMode } from '../api/storage';
 
-const emit = defineEmits<{ (e: 'purge'): void }>();
+const emit = defineEmits<{ (e: 'purge'): void; (e: 'purge-and-leave'): void }>();
 
 const open = ref(false);
 const mode = ref<StorageMode>(getMode());
@@ -30,7 +30,9 @@ function toggleMode() {
         <div>
           <p class="option__title">Помнить разговор на этом устройстве</p>
           <p class="option__hint">
-            Выключено — переписка исчезнет из браузера, как только ты закроешь вкладку.
+            Включено: можно закрыть сайт и выключить телефон — вернёшься к тому же
+            разговору. Выключи, если пользуешься общим или чужим устройством: тогда
+            переписка исчезнет, как только закроешь вкладку.
           </p>
         </div>
         <button
@@ -47,10 +49,23 @@ function toggleMode() {
       <div class="option">
         <div>
           <p class="option__title">Удалить переписку</p>
-          <p class="option__hint">Сообщения сотрутся и у нас, и у тебя. Отменить не получится.</p>
+          <p class="option__hint">
+            Сообщения сотрутся и у нас, и у тебя. Отменить не получится.
+          </p>
         </div>
-        <button class="danger" type="button" @click="emit('purge')">Удалить</button>
+        <div class="actions">
+          <button class="danger" type="button" @click="emit('purge')">Удалить</button>
+          <button class="danger" type="button" @click="emit('purge-and-leave')">
+            Удалить и выйти
+          </button>
+        </div>
       </div>
+
+      <p class="footnote">
+        Кнопка «Быстро закрыть» в шапке просто уводит на другой сайт, разговор при
+        этом сохраняется. Она не стирает историю браузера — это умеет только сам
+        браузер.
+      </p>
     </div>
   </div>
 </template>
@@ -121,31 +136,11 @@ function toggleMode() {
   max-width: 26rem;
 }
 
-.switch {
-  flex: none;
-  width: 46px;
-  height: 27px;
-  padding: 3px;
-  border-radius: var(--radius-pill);
-  background: var(--mist-deep);
-  transition: background 220ms var(--ease-calm);
-}
-
-.switch[aria-checked='true'] {
-  background: var(--moss);
-}
-
-.switch__knob {
-  display: block;
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 220ms var(--ease-calm);
-}
-
-.switch[aria-checked='true'] .switch__knob {
-  transform: translateX(19px);
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
 }
 
 .danger {
@@ -156,9 +151,29 @@ function toggleMode() {
   background: var(--sand);
   color: var(--clay);
   font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
 .danger:hover {
   background: #f1e3d3;
+}
+
+.footnote {
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--mist);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+@media (max-width: 34rem) {
+  .option {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
 }
 </style>
