@@ -2,6 +2,7 @@
 import { ref, nextTick, onBeforeUnmount } from 'vue';
 import type { Socket } from 'socket.io-client';
 import { api, ApiError } from '../api/http';
+import { useAppViewport } from '../composables/useAppViewport';
 import { connectAsOperator } from '../api/socket';
 import type { ChatMessage } from '../stores/chat';
 
@@ -28,6 +29,9 @@ const draft = ref('');
 const thread = ref<HTMLElement | null>(null);
 
 let socket: Socket | null = null;
+
+// Панель тоже открывают с телефона — дежурство не всегда за столом.
+useAppViewport(() => scrollToEnd());
 
 const riskLabel: Record<QueueItem['risk'], string> = {
   NONE: '',
@@ -169,7 +173,7 @@ onBeforeUnmount(() => socket?.disconnect());
 .gate {
   display: grid;
   place-items: center;
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
   padding: var(--space-4);
 }
 
@@ -221,7 +225,9 @@ onBeforeUnmount(() => socket?.disconnect());
 .console {
   display: grid;
   grid-template-columns: 21rem 1fr;
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .queue {
@@ -373,7 +379,15 @@ onBeforeUnmount(() => socket?.disconnect());
 @media (max-width: 52rem) {
   .console {
     grid-template-columns: 1fr;
-    grid-template-rows: 14rem 1fr;
+    grid-template-rows: minmax(0, 12rem) minmax(0, 1fr);
+  }
+
+  .dialog__thread {
+    padding: var(--space-3);
+  }
+
+  .dialog__composer {
+    padding: var(--space-3);
   }
 
   .queue {

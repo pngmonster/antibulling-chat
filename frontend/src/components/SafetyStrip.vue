@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { getMode, setMode, type StorageMode } from '../api/storage';
 
+const props = defineProps<{ compact?: boolean }>();
 const emit = defineEmits<{ (e: 'purge'): void; (e: 'purge-and-leave'): void }>();
 
 const open = ref(false);
 const mode = ref<StorageMode>(getMode());
+
+// При открытой клавиатуре панель складывается сама: развёрнутой ей
+// на экране телефона просто нет места.
+watch(
+  () => props.compact,
+  (value) => {
+    if (value) open.value = false;
+  },
+);
 
 function toggleMode() {
   mode.value = mode.value === 'device' ? 'session' : 'device';
@@ -14,14 +24,18 @@ function toggleMode() {
 </script>
 
 <template>
-  <div class="strip">
-    <p class="line">
+  <div class="strip" :class="{ 'strip--compact': compact }">
+    <p v-if="!compact" class="line">
       Если сейчас есть опасность — звони
       <a href="tel:112">112</a>. Поговорить круглосуточно и бесплатно:
       <a href="tel:88002000122">8 800 2000 122</a>.
     </p>
 
-    <button class="more" type="button" :aria-expanded="open" @click="open = !open">
+    <p v-else class="line line--short">
+      Опасность сейчас — <a href="tel:112">112</a> · <a href="tel:88002000122">8 800 2000 122</a>
+    </p>
+
+    <button v-if="!compact" class="more" type="button" :aria-expanded="open" @click="open = !open">
       {{ open ? 'Свернуть' : 'Приватность' }}
     </button>
 
@@ -94,7 +108,18 @@ function toggleMode() {
   white-space: nowrap;
 }
 
+.strip--compact {
+  padding-top: var(--space-2);
+}
+
+.line--short {
+  min-width: 0;
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
 .more {
+  padding: 6px 4px;
   color: var(--ink-soft);
   text-decoration: underline;
   text-decoration-color: var(--mist-deep);
@@ -167,6 +192,20 @@ function toggleMode() {
 }
 
 @media (max-width: 34rem) {
+  .strip {
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    padding-top: var(--space-2);
+  }
+
+  .line {
+    min-width: 0;
+  }
+
+  .panel {
+    padding: var(--space-4);
+  }
+
   .option {
     flex-direction: column;
     align-items: flex-start;

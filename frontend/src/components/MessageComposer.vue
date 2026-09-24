@@ -5,6 +5,7 @@ const props = defineProps<{ disabled?: boolean }>();
 const emit = defineEmits<{
   (e: 'send', text: string): void;
   (e: 'typing', isTyping: boolean): void;
+  (e: 'focus'): void;
 }>();
 
 const text = ref('');
@@ -15,7 +16,10 @@ function resize() {
   const el = field.value;
   if (!el) return;
   el.style.height = 'auto';
-  el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  // На телефоне поле не должно разрастаться на пол-экрана: за ним
+  // перестаёт быть видно собственно разговор.
+  const limit = window.innerWidth < 544 ? 108 : 200;
+  el.style.height = `${Math.min(el.scrollHeight, limit)}px`;
 }
 
 watch(text, () => {
@@ -30,18 +34,22 @@ function submit() {
   text.value = '';
   nextTick(() => {
     resize();
+    // Клавиатуру не закрываем: разговор продолжается, и лишний тап по полю
+    // после каждой реплики раздражает.
     field.value?.focus();
   });
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    submit();
-  }
+  // На телефоне Enter ставит перенос строки: там нет Shift, а отправлять
+  // сообщение посреди мысли — худшее, что можно сделать.
+  if (event.key !== 'Enter' || event.shiftKey) return;
+  if (window.matchMedia('(pointer: coarse)').matches) return;
+  event.preventDefault();
+  submit();
 }
 
-/** Позволяет вставить текст из подсказки и сразу продолжить писать. */
+/** Позволяет вставить готовую фразу и сразу продолжить писать. */
 function insert(value: string) {
   text.value = value;
   nextTick(() => {
@@ -65,8 +73,11 @@ defineExpose({ insert, focus: () => field.value?.focus() });
       :maxlength="MAX"
       placeholder="Напиши, что случилось…"
       autocomplete="off"
+      autocapitalize="sentences"
       spellcheck="false"
+      enterkeyhint="enter"
       @keydown="onKeydown"
+      @focus="emit('focus')"
     ></textarea>
 
     <button
@@ -102,11 +113,12 @@ defineExpose({ insert, focus: () => field.value?.focus() });
 
 .field {
   flex: 1;
+  min-width: 0;
   min-height: 30px;
-  max-height: 200px;
   padding: 11px 0;
   border: none;
   background: transparent;
+  /* Не меньше 16px: иначе iOS сам зумит страницу при фокусе. */
   font-size: var(--text-md);
   line-height: 1.5;
   resize: none;
@@ -147,5 +159,16 @@ defineExpose({ insert, focus: () => field.value?.focus() });
   background: var(--mist-deep);
   color: var(--ink-faint);
   cursor: default;
+}
+
+@media (max-width: 34rem) {
+  .composer {
+    padding: 6px 6px 6px var(--space-4);
+    border-radius: 24px;
+  }
+
+  .field {
+    padding: 9px 0;
+  }
 }
 </style>

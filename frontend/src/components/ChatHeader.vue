@@ -143,7 +143,7 @@ const labels: Record<Connection, string> = {
    не воевала за место с кнопкой выхода. */
 @media (max-width: 22rem) {
   .exit {
-    padding: 8px;
+    padding: 10px;
   }
 
   .exit__label {

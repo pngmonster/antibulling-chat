@@ -91,6 +91,18 @@ const lines = computed(() => props.message.body.split('\n'));
   color: rgba(255, 255, 255, 0.62);
 }
 
+@media (max-width: 34rem) {
+  .bubble {
+    max-width: 88%;
+    font-size: var(--text-base);
+    padding: 10px 14px 6px;
+  }
+
+  .row {
+    margin-bottom: var(--space-2);
+  }
+}
+
 .note {
   max-width: 34rem;
   width: 100%;
@@ -105,6 +117,14 @@ const lines = computed(() => props.message.body.split('\n'));
 .note__line {
   margin: 0;
   color: #5c4634;
+}
+
+@media (max-width: 34rem) {
+  .note {
+    padding: var(--space-3) var(--space-4);
+    border-radius: 20px;
+    font-size: var(--text-sm);
+  }
 }
 
 .note__contacts {

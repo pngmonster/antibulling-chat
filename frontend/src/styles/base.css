@@ -10,6 +10,15 @@ body,
   height: 100%;
 }
 
+/* Скроллится только лента сообщений. Если дать скроллиться странице целиком,
+   на мобильных при открытой клавиатуре экран уезжает вместе с шапкой. */
+html,
+body {
+  overflow: hidden;
+  position: relative;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background: var(--mist);
@@ -18,8 +27,18 @@ body {
   font-size: var(--text-base);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
   text-rendering: optimizeLegibility;
-  overscroll-behavior: none;
+}
+
+/* Высоту задаёт useAppViewport; 100dvh — запасной вариант до первого замера
+   и для браузеров без visualViewport. */
+.app-frame {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--app-top, 0px);
+  height: var(--app-height, 100dvh);
 }
 
 button {
@@ -61,6 +80,8 @@ input {
 
 /* Тонкая полоса прокрутки, чтобы не рвать спокойный фон */
 .scroll-area {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--mist-deep) transparent;
 }

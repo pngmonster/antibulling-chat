@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useChatStore } from '../stores/chat';
 import { useQuickExit } from '../composables/useQuickExit';
+import { useAppViewport } from '../composables/useAppViewport';
 import AmbientLight from '../components/AmbientLight.vue';
 import ChatHeader from '../components/ChatHeader.vue';
 import MessageBubble from '../components/MessageBubble.vue';
@@ -17,21 +18,28 @@ const { leave, wipeAndLeave } = useQuickExit();
 const thread = ref<HTMLElement | null>(null);
 const composer = ref<InstanceType<typeof MessageComposer> | null>(null);
 
+// Клавиатура меняет видимую высоту — лента должна остаться у последнего
+// сообщения, а не уехать в середину переписки.
+const { keyboardOpen } = useAppViewport(() => scrollToEnd('auto'));
+
 onMounted(async () => {
   await chat.start();
-  composer.value?.focus();
+  // Фокус ставим только на десктопе: на телефоне он немедленно поднимет
+  // клавиатуру и закроет приветствие, которое ребёнок ещё не прочитал.
+  if (window.matchMedia('(pointer: fine)').matches) composer.value?.focus();
 });
 
-function scrollToEnd() {
+function scrollToEnd(behavior: ScrollBehavior = 'smooth') {
   nextTick(() => {
     const el = thread.value;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
   });
 }
 
-watch(() => chat.messages.length, scrollToEnd);
-watch(() => chat.psychologistTyping, scrollToEnd);
-watch(() => chat.revealing, scrollToEnd);
+watch(() => chat.messages.length, () => scrollToEnd());
+watch(() => chat.psychologistTyping, () => scrollToEnd());
+watch(() => chat.revealing, () => scrollToEnd('auto'));
 
 async function purge() {
   await chat.purge();
@@ -46,7 +54,7 @@ async function purgeAndLeave() {
 </script>
 
 <template>
-  <div class="screen">
+  <div class="screen app-frame">
     <AmbientLight />
 
     <ChatHeader :connection="chat.connection" @exit="leave" />
@@ -69,7 +77,7 @@ async function purgeAndLeave() {
     <footer class="dock">
       <div class="dock__inner">
         <StarterChips
-          v-if="!chat.hasChildMessage && !chat.revealing"
+          v-if="!chat.hasChildMessage && !chat.revealing && !keyboardOpen"
           @pick="(text) => composer?.insert(text)"
         />
 
@@ -78,9 +86,14 @@ async function purgeAndLeave() {
           :disabled="chat.connection === 'offline'"
           @send="chat.send"
           @typing="chat.notifyTyping"
+          @focus="scrollToEnd('auto')"
         />
 
-        <SafetyStrip @purge="purge" @purge-and-leave="purgeAndLeave" />
+        <SafetyStrip
+          :compact="keyboardOpen"
+          @purge="purge"
+          @purge-and-leave="purgeAndLeave"
+        />
       </div>
     </footer>
   </div>
@@ -88,14 +101,16 @@ async function purgeAndLeave() {
 
 <style scoped>
 .screen {
-  position: relative;
   z-index: 1;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 100dvh;
+  /* Вырез камеры и полоса жестов: контент не должен под них уезжать. */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .thread {
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-4) var(--space-5) var(--space-5);
 }
@@ -126,13 +141,13 @@ async function purgeAndLeave() {
   text-align: center;
 }
 
-@media (max-width: 30rem) {
+@media (max-width: 34rem) {
   .thread {
-    padding: var(--space-2) var(--space-4) var(--space-4);
+    padding: var(--space-2) var(--space-3) var(--space-3);
   }
 
   .dock {
-    padding: var(--space-2) var(--space-4) var(--space-4);
+    padding: var(--space-1) var(--space-3) var(--space-3);
   }
 }
 </style>

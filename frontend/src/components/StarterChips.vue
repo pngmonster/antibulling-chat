@@ -12,8 +12,14 @@ const starters = [
 </script>
 
 <template>
-  <div class="chips">
-    <button v-for="text in starters" :key="text" type="button" class="chip" @click="emit('pick', text)">
+  <div class="chips scroll-area">
+    <button
+      v-for="text in starters"
+      :key="text"
+      type="button"
+      class="chip"
+      @click="emit('pick', text)"
+    >
       {{ text }}
     </button>
   </div>
@@ -24,7 +30,7 @@ const starters = [
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin: var(--space-2) 0 var(--space-5);
+  margin: var(--space-2) 0 var(--space-4);
 }
 
 .chip {
@@ -44,5 +50,28 @@ const starters = [
   background: var(--moss-wash);
   border-color: transparent;
   color: var(--moss-deep);
+}
+
+/* На телефоне подсказки едут одной строкой с прокруткой: перенос в три ряда
+   съедал бы половину экрана ещё до того, как ребёнок начал печатать. */
+@media (max-width: 34rem) {
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: var(--space-2) 0 var(--space-3);
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip {
+    flex: none;
+    scroll-snap-align: start;
+    background: var(--paper);
+  }
 }
 </style>
